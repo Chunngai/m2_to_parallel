@@ -34,13 +34,15 @@ def split_answer_by_annotator(in_file):
 
 def get_output_file_path(in_file, txt_name):
     if txt_name is None:
-        return os.path.join(os.path.dirname(in_file), '.'.join(os.path.basename(in_file).split('.', )[:-1]) + ".txt")
+        return \
+            os.path.join(os.path.dirname(in_file), '.'.join(os.path.basename(in_file).split('.', )[:-1]) + ".src"), \
+            os.path.join(os.path.dirname(in_file), '.'.join(os.path.basename(in_file).split('.', )[:-1]) + ".trg")
     else:
-        return txt_name
+        return f"{txt_name}.src", f"{txt_name}.trg"
 
 
 def m2_to_csv(in_file, txt_name):
-    out_file = get_output_file_path(in_file, txt_name)
+    out_src_file, out_trg_file = get_output_file_path(in_file, txt_name)
 
     m2_content = split_answer_by_annotator(in_file)
 
@@ -50,7 +52,7 @@ def m2_to_csv(in_file, txt_name):
     prev_sid = prev_eid = -1
     pos = 0
 
-    with open(out_file, 'w') as output_file:
+    with open(out_src_file, 'w') as output_src_file, open(out_trg_file, 'w') as output_trg_file:
         for line in m2_content.split('\n')[:-1]:
             line = line.strip()
 
@@ -58,7 +60,7 @@ def m2_to_csv(in_file, txt_name):
                 line = line[2:]
                 words = line.split()
                 corrected = ['<S>'] + words[:]
-                output_file.write(line + '\n')
+                output_src_file.write(line + '\n')
             elif line.startswith('A'):
                 line = line[2:]
                 info = line.split("|||")
@@ -88,7 +90,7 @@ def m2_to_csv(in_file, txt_name):
                 target_sentence = ' '.join([word for word in corrected if word != ""])
                 assert target_sentence.startswith('<S>'), '(' + target_sentence + ')'
                 target_sentence = target_sentence[4:]
-                output_file.write(target_sentence + '\n\n')
+                output_trg_file.write(target_sentence + '\n')
                 prev_sid = -1
                 prev_eid = -1
                 pos = 0
@@ -102,7 +104,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--src", "-s", action="store", required=True,
                         help="the src m2 file")
-    parser.add_argument("--txt-name", "-n", action="store", help="txt name")
+    parser.add_argument("--txt-name", "-n", action="store", help="txt name (without ext)")
 
     args = parser.parse_args()
 
