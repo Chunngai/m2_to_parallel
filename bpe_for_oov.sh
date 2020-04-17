@@ -3,26 +3,57 @@
 # inputs: train.src, train.trg, dev.src, dev.trg, test.src, test.trg, 
 #         [num_operations]
 
+# number of operations
 NUM_OPERATIONS=10000
-if [ $# -eq 7 ]
+if [ $# -eq 7 -o $# -eq 5 ]
 then
 	NUM_OPERATIONS=$7
 fi
 
-DIR = data_with_bpe
+# create a dir
+TIME=`date "+%Y-%m-%d_%H:%M:%S"`
+DIR="data_with_bpe_"$TIME
 sudo mkdir $DIR
+sudo chmod 777 $DIR
 
-subword-nmt learn-joint-bpe-and-vocab -i $1 $2 \
-	-s NUM_OPERATIONS \
-        -o $DIR/codes \
-        --write-vocabulary $DIR/$1.vocab $DIR/$2.vocab
+# bpe
+CODES=$DIR/codes
+TRAIN_SRC_VOCAB=$DIR/$1.vocab
+TRAIN_TRG_VOCAB=$DIR/$2.vocab
 
-subword-nmt apply-bpe -c codes --vocabulary $DIR/$1.vocab -i $1 -o $DIR/train.src
-subword-nmt apply-bpe -c codes --vocabulary $DIR/$2.vocab -i $2 -o $DIR/train.trg
+ORIGINAL_TRAIN_SRC=$1
+ORIGINAL_TRAIN_TRG=$2
+ORIGINAL_DEV_SRC=$3
+ORIGINAL_DEV_TRG=$4
+ORIGINAL_TEST_SRC=$5
+ORIGINAL_TEST_TRG=$6
+if [ $# -eq 3 -o $# -eq 4 ]
+then
+	ORIGINAL_TEST_SRC=$3
+	ORIGINAL_TEST_TRG=$4
+fi
 
-subword-nmt apply-bpe -c codes --vocabulary $DIR/$1.vocab -i $3 -o $DIR/dev.src
-subword-nmt apply-bpe -c codes --vocabulary $DIR/$2.vocab -i $4 -o $DIR/dev.trg
+TRAIN_SRC=$DIR/train.src
+TRAIN_TRG=$DIR/train.trg
+DEV_SRC=$DIR/dev.src
+DEV_TRG=$DIR/dev.trg
+TEST_SRC=$DIR/test.src
+TEST_TRG=$DIR/test.trg
 
-subword-nmt apply-bpe -c codes --vocabulary $DIR/$1.vocab -i $5 -o $DIR/test.src
-subword-nmt apply-bpe -c codes --vocabulary $DIR/$2.vocab -i $6 -o $DIR/test.trg
+subword-nmt learn-joint-bpe-and-vocab -i $ORIGINAL_TRAIN_SRC $ORIGINAL_TRAIN_TRG \
+	-s $NUM_OPERATIONS \
+        -o $CODES \
+        --write-vocabulary $TRAIN_SRC_VOCAB $TRAIN_TRG_VOCAB
+
+subword-nmt apply-bpe -c $CODES --vocabulary $TRAIN_SRC_VOCAB -i $ORIGINAL_TRAIN_SRC -o $TRAIN_SRC
+subword-nmt apply-bpe -c $CODES --vocabulary $TRAIN_TRG_VOCAB -i $ORIGINAL_TRAIN_TRG -o $TRAIN_TRG
+
+if [ $# -eq 6 -o $# -eq 7 ]
+then
+	subword-nmt apply-bpe -c $CODES --vocabulary $TRAIN_SRC_VOCAB -i $ORIGINAL_DEV_SRC -o $DEV_SRC
+	subword-nmt apply-bpe -c $CODES --vocabulary $TRAIN_TRG_VOCAB -i $ORIGINAL_DEV_TRG -o $DEV_TRG
+fi
+
+subword-nmt apply-bpe -c $CODES --vocabulary $TRAIN_SRC_VOCAB -i $ORIGINAL_TEST_SRC -o $TEST_SRC
+subword-nmt apply-bpe -c $CODES --vocabulary $TRAIN_TRG_VOCAB -i $ORIGINAL_TEST_TRG -o $TEST_TRG
 
